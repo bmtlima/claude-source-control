@@ -79,11 +79,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.unstageFile', (resourceState: vscode.SourceControlResourceState) => {
             sessionManager?.unstageFile(resourceState);
         }),
-        vscode.commands.registerCommand('multiClaude.stageAll', (sourceControl: vscode.SourceControl) => {
-            sessionManager?.stageAll(sourceControl);
+        vscode.commands.registerCommand('multiClaude.stageAll', (group: vscode.SourceControlResourceGroup) => {
+            sessionManager?.stageAll(group);
         }),
-        vscode.commands.registerCommand('multiClaude.unstageAll', (sourceControl: vscode.SourceControl) => {
-            sessionManager?.unstageAll(sourceControl);
+        vscode.commands.registerCommand('multiClaude.unstageAll', (group: vscode.SourceControlResourceGroup) => {
+            sessionManager?.unstageAll(group);
         }),
     );
 }

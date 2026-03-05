@@ -299,16 +299,16 @@ export class SessionManager implements vscode.Disposable {
     }
 
     /** Stage all files in a session panel. */
-    stageAll(sourceControl: vscode.SourceControl): void {
-        const panel = this._findPanelForScm(sourceControl);
+    stageAll(group: vscode.SourceControlResourceGroup): void {
+        const panel = this._findPanelForGroup(group);
         if (!panel) { return; }
         panel.stageAll();
         this._refresh();
     }
 
     /** Unstage all files in a session panel. */
-    unstageAll(sourceControl: vscode.SourceControl): void {
-        const panel = this._findPanelForScm(sourceControl);
+    unstageAll(group: vscode.SourceControlResourceGroup): void {
+        const panel = this._findPanelForGroup(group);
         if (!panel) { return; }
         panel.unstageAll();
         this._refresh();
@@ -367,6 +367,15 @@ export class SessionManager implements vscode.Disposable {
     private _findPanelForScm(scm: vscode.SourceControl): SessionSourceControl | undefined {
         for (const panel of this._sessions.values()) {
             if (panel.scm === scm) { return panel; }
+        }
+        return undefined;
+    }
+
+    private _findPanelForGroup(group: vscode.SourceControlResourceGroup): SessionSourceControl | undefined {
+        for (const panel of this._sessions.values()) {
+            if (panel.stagedGroup === group || panel.changesGroup === group || panel.conflictsGroup === group) {
+                return panel;
+            }
         }
         return undefined;
     }
