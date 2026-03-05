@@ -28,10 +28,9 @@
 - Agent-2 only watches its own directory, so it doesn't detect the workspace change
 - Conflict status for other agents becomes stale
 
-## 7. `acceptAll`/`discardAll` receive wrong argument type (lines 340-347)
-- `scm/title` menu items pass `SourceControlResourceGroup`, not `SourceControl`
-- `findAgentForScm` expects `SourceControl` and does identity comparison
-- Bulk actions silently fail
+## ~~7. `stageAll`/`unstageAll` receive wrong argument type~~ (fixed)
+- `scm/resourceGroup/context` items pass `SourceControlResourceGroup`, not `SourceControl`
+- Fixed by adding `_findPanelForGroup()` and updating `stageAll`/`unstageAll` signatures
 
 ## 8. Agent-1 only shows "Conflicts", missing "Changes" tab
 - When both agents modify the same file (e.g. `src/index.ts`), Agent-1 shows it under Conflicts only
