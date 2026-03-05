@@ -243,6 +243,12 @@ export class SessionSourceControl implements vscode.Disposable {
         }
     }
 
+    /** Clear persisted staged paths for this session (call before dispose). */
+    cleanupPersistence(): void {
+        this._stagedPaths.clear();
+        this._saveStagedPaths();
+    }
+
     dispose(): void {
         for (const d of this._disposables) { d.dispose(); }
     }

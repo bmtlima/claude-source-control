@@ -81,6 +81,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.unstageAll', (group: vscode.SourceControlResourceGroup) => {
             sessionManager?.unstageAll(group);
         }),
+        vscode.commands.registerCommand('multiClaude.dismissSession', (sourceControl: vscode.SourceControl) => {
+            sessionManager?.dismissSession(sourceControl);
+        }),
     );
 }
 

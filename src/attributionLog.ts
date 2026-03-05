@@ -195,6 +195,36 @@ export class AttributionLog implements vscode.Disposable {
         }
     }
 
+    /** Remove all data for a session (in-memory + JSONL). */
+    removeSession(sessionId: string): void {
+        this._sessionFiles.delete(sessionId);
+
+        // Rewrite JSONL without this session's entries
+        try {
+            if (!fs.existsSync(this._logPath)) { return; }
+            const content = fs.readFileSync(this._logPath, 'utf-8');
+            const keptLines: string[] = [];
+            for (const line of content.split('\n')) {
+                const trimmed = line.trim();
+                if (!trimmed) { continue; }
+                try {
+                    const entry: AttributionEntry = JSON.parse(trimmed);
+                    if (entry.session_id === sessionId) { continue; }
+                    keptLines.push(trimmed);
+                } catch {
+                    // Skip malformed lines
+                }
+            }
+            const newContent = keptLines.length > 0
+                ? keptLines.join('\n') + '\n'
+                : '';
+            fs.writeFileSync(this._logPath, newContent);
+            this._byteOffset = Buffer.byteLength(newContent, 'utf-8');
+        } catch {
+            // If rewrite fails, leave file as-is
+        }
+    }
+
     dispose(): void {
         this._disposed = true;
         this._watcher?.close();

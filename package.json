@@ -60,6 +60,11 @@
         "command": "multiClaude.refresh",
         "title": "Multi-Claude: Refresh Panels",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "multiClaude.dismissSession",
+        "title": "Dismiss Session",
+        "icon": "$(close)"
       }
     ],
     "menus": {
@@ -111,6 +116,11 @@
         {
           "command": "multiClaude.refresh",
           "group": "navigation@3",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        },
+        {
+          "command": "multiClaude.dismissSession",
+          "group": "navigation@4",
           "when": "scmProvider =~ /^multiClaude\\./"
         }
       ]

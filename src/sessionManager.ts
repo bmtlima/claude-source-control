@@ -177,6 +177,7 @@ export class SessionManager implements vscode.Disposable {
             // Remove panels for sessions with no active files
             for (const [sessionId, panel] of this._sessions) {
                 if (!activeSessions.has(sessionId)) {
+                    panel.cleanupPersistence();
                     panel.dispose();
                     this._sessions.delete(sessionId);
                 }
@@ -308,6 +309,21 @@ export class SessionManager implements vscode.Disposable {
         this._scheduleRefresh();
     }
 
+    /** Dismiss a session panel manually. */
+    dismissSession(sourceControl: vscode.SourceControl): void {
+        for (const [sessionId, panel] of this._sessions) {
+            if (panel.scm === sourceControl) {
+                panel.cleanupPersistence();
+                panel.dispose();
+                this._sessions.delete(sessionId);
+                this.conflictTracker.removeSession(sessionId);
+                this.attributionLog.removeSession(sessionId);
+                this._pruneSessionNames(new Set(this._sessions.keys()));
+                break;
+            }
+        }
+    }
+
     /** Force a manual refresh. */
     refresh(): void {
         this._scheduleRefresh();
@@ -426,6 +442,7 @@ export class SessionManager implements vscode.Disposable {
         }
         this._gitIndexWatcher?.close();
         for (const panel of this._sessions.values()) {
+            panel.cleanupPersistence();
             panel.dispose();
         }
         this._sessions.clear();
