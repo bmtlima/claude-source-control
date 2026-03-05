@@ -49,6 +49,10 @@
         "icon": "$(discard)"
       },
       {
+        "command": "multiClaude.commitSession",
+        "title": "Commit Session"
+      },
+      {
         "command": "multiClaude.setupHook",
         "title": "Multi-Claude: Install Attribution Hook"
       },

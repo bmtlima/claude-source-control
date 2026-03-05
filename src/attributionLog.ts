@@ -133,6 +133,77 @@ export class AttributionLog implements vscode.Disposable {
         return changed;
     }
 
+    /**
+     * Transfer attribution from an old path to a new path (for renames).
+     * All sessions that had the old path will now also have the new path.
+     */
+    transferAttribution(oldAbsPath: string, newAbsPath: string): void {
+        for (const [, files] of this._sessionFiles) {
+            if (files.has(oldAbsPath)) {
+                files.delete(oldAbsPath);
+                files.add(newAbsPath);
+            }
+        }
+    }
+
+    /**
+     * Prune entries for files that are no longer uncommitted.
+     * Rewrites the JSONL keeping only entries whose file_path is in uncommittedPaths.
+     * Also cleans up the in-memory sessionFiles map.
+     */
+    pruneEntries(uncommittedAbsPaths: Set<string>): void {
+        // Prune in-memory map
+        for (const [sessionId, files] of this._sessionFiles) {
+            for (const f of files) {
+                if (!uncommittedAbsPaths.has(f)) {
+                    files.delete(f);
+                }
+            }
+            if (files.size === 0) {
+                this._sessionFiles.delete(sessionId);
+            }
+        }
+
+        // Rewrite the JSONL file keeping only relevant entries
+        try {
+            if (!fs.existsSync(this._logPath)) { return; }
+            const content = fs.readFileSync(this._logPath, 'utf-8');
+            const keptLines: string[] = [];
+            for (const line of content.split('\n')) {
+                const trimmed = line.trim();
+                if (!trimmed) { continue; }
+                try {
+                    const entry: AttributionEntry = JSON.parse(trimmed);
+                    if (!entry.session_id || !entry.file_path) { continue; }
+                    const absPath = path.isAbsolute(entry.file_path)
+                        ? entry.file_path
+                        : path.join(this.workspaceRoot, entry.file_path);
+                    if (uncommittedAbsPaths.has(absPath)) {
+                        keptLines.push(trimmed);
+                    }
+                } catch {
+                    // Skip malformed lines
+                }
+            }
+            const newContent = keptLines.length > 0
+                ? keptLines.join('\n') + '\n'
+                : '';
+            fs.writeFileSync(this._logPath, newContent);
+            this._byteOffset = Buffer.byteLength(newContent, 'utf-8');
+        } catch {
+            // If rewrite fails, leave file as-is
+        }
+    }
+
+    /** Returns the set of session IDs that have active (non-empty) file sets. */
+    get activeSessionIds(): Set<string> {
+        const ids = new Set<string>();
+        for (const [id, files] of this._sessionFiles) {
+            if (files.size > 0) { ids.add(id); }
+        }
+        return ids;
+    }
+
     dispose(): void {
         this._disposed = true;
         this._watcher?.close();

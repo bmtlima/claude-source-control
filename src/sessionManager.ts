@@ -18,7 +18,6 @@ import { NAME_POOL, SESSION_NAMES_FILE, DEBOUNCE_MS } from './constants';
 export class SessionManager implements vscode.Disposable {
     private _sessions = new Map<string, SessionSourceControl>();
     private _nameMap = new Map<string, string>(); // session_id → friendly name
-    private _nextNameIndex = 0;
     private _disposables: vscode.Disposable[] = [];
     private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
     private _statusBar: vscode.StatusBarItem;
@@ -59,7 +58,6 @@ export class SessionManager implements vscode.Disposable {
                             this._nameMap.set(id, name);
                         }
                     }
-                    this._nextNameIndex = this._nameMap.size;
                 }
             }
         } catch {
@@ -84,12 +82,15 @@ export class SessionManager implements vscode.Disposable {
         let name = this._nameMap.get(sessionId);
         if (name) { return name; }
 
-        if (this._nextNameIndex < NAME_POOL.length) {
-            name = NAME_POOL[this._nextNameIndex];
-        } else {
-            name = `Session-${this._nextNameIndex + 1}`;
+        // Find the first unused name from the pool
+        const usedNames = new Set(this._nameMap.values());
+        name = NAME_POOL.find(n => !usedNames.has(n));
+        if (!name) {
+            // All pool names taken — generate a numbered fallback
+            let i = NAME_POOL.length + 1;
+            do { name = `Session-${i++}`; } while (usedNames.has(name));
         }
-        this._nextNameIndex++;
+
         this._nameMap.set(sessionId, name);
         this._saveSessionNames();
         return name;
@@ -128,6 +129,20 @@ export class SessionManager implements vscode.Disposable {
                     .filter(e => e.status === '??')
                     .map(e => path.join(this.repoRoot, e.path))
             );
+            const deletedPaths = new Set(
+                statusEntries
+                    .filter(e => e.status[1] === 'D' || e.status[0] === 'D')
+                    .map(e => path.join(this.repoRoot, e.path))
+            );
+
+            // Handle renames: transfer attribution from old path to new path
+            for (const entry of statusEntries) {
+                if (entry.origPath) {
+                    const absOld = path.join(this.repoRoot, entry.origPath);
+                    const absNew = path.join(this.repoRoot, entry.path);
+                    this.attributionLog.transferAttribution(absOld, absNew);
+                }
+            }
 
             // Get attribution data
             const sessionFiles = this.attributionLog.sessionFiles;
@@ -188,13 +203,31 @@ export class SessionManager implements vscode.Disposable {
                         changedFiles.push(f);
                     }
                 }
-                panel.updateResources(changedFiles, conflictFiles, untrackedPaths);
+                panel.updateResources(changedFiles, conflictFiles, untrackedPaths, deletedPaths);
             }
+
+            // Prune stale attribution entries and session names
+            this.attributionLog.pruneEntries(uncommittedPaths);
+            this._pruneSessionNames(activeSessions);
 
             // Update status bar
             this._updateStatusBar(activeSessions.size);
         } catch (err) {
             console.error('Multi-Claude refresh failed:', err);
+        }
+    }
+
+    /** Remove session names for sessions with no active files. */
+    private _pruneSessionNames(activeSessions: Set<string>): void {
+        let changed = false;
+        for (const sessionId of [...this._nameMap.keys()]) {
+            if (!activeSessions.has(sessionId)) {
+                this._nameMap.delete(sessionId);
+                changed = true;
+            }
+        }
+        if (changed) {
+            this._saveSessionNames();
         }
     }
 
@@ -339,9 +372,12 @@ export class SessionManager implements vscode.Disposable {
         try {
             await gitAddAndCommit(this.repoRoot, relativePaths, message);
             panel.scm.inputBox.value = '';
+            panel.clearStagedPaths(filePaths);
             vscode.window.showInformationMessage(
                 `Committed ${relativePaths.length} file(s) from "${panel.sessionName}".`
             );
+            // Refresh built-in Git SCM so "Sync Changes" appears
+            vscode.commands.executeCommand('git.refresh');
             this._scheduleRefresh();
         } catch (err) {
             vscode.window.showErrorMessage(`Commit failed: ${err}`);

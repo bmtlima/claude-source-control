@@ -27,10 +27,12 @@ export async function gitShow(cwd: string, relativePath: string): Promise<string
 }
 
 export interface GitStatusEntry {
-    /** Two-character porcelain status code, e.g. ' M', '??', 'A ' */
+    /** Two-character porcelain status code, e.g. ' M', '??', 'A ', ' D', 'R ' */
     status: string;
     /** Path relative to repo root */
     path: string;
+    /** Original path for renames (the "from" path) */
+    origPath?: string;
 }
 
 /** Returns list of changed files from `git status --porcelain`. */
@@ -39,9 +41,25 @@ export async function gitStatusFiles(cwd: string): Promise<GitStatusEntry[]> {
     const entries: GitStatusEntry[] = [];
     for (const line of out.split('\n')) {
         if (line.length < 4) { continue; }
+        const statusCode = line.substring(0, 2);
+        const rest = line.substring(3);
+
+        // Renames have the format: "R  old -> new" or "RM old -> new"
+        if (statusCode[0] === 'R' || statusCode[1] === 'R') {
+            const arrowIdx = rest.indexOf(' -> ');
+            if (arrowIdx !== -1) {
+                entries.push({
+                    status: statusCode,
+                    path: rest.substring(arrowIdx + 4),
+                    origPath: rest.substring(0, arrowIdx),
+                });
+                continue;
+            }
+        }
+
         entries.push({
-            status: line.substring(0, 2),
-            path: line.substring(3),
+            status: statusCode,
+            path: rest,
         });
     }
     return entries;

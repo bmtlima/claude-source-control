@@ -3,6 +3,7 @@ export const URI_SCHEME = 'multi-claude-git';
 export const CLAUDE_DIR = '.claude';
 export const ATTRIBUTION_LOG = '.claude/file-attribution.jsonl';
 export const SESSION_NAMES_FILE = '.claude/session-names.json';
+export const STAGED_FILES_PATH = '.claude/staged-files.json';
 export const HOOK_SCRIPT_PATH = '.claude/hooks/log-attribution.sh';
 export const SETTINGS_LOCAL_PATH = '.claude/settings.local.json';
 
