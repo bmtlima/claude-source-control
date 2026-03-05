@@ -119,9 +119,6 @@ export class SessionSourceControl implements vscode.Disposable {
         const changeStates: vscode.SourceControlResourceState[] = [];
         const conflictStates: vscode.SourceControlResourceState[] = [];
 
-        // Build conflict set for reference
-        const conflictSet = new Set(conflictFiles);
-
         for (const f of changedFiles) {
             const state = this._makeResourceState(f, untrackedPaths.has(f), false, deletedPaths.has(f));
             if (this._stagedPaths.has(f)) {

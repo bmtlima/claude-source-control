@@ -97,7 +97,6 @@ export class SessionManager implements vscode.Disposable {
     }
 
     private _watchGitIndex(): void {
-        const gitIndexPath = path.join(this.repoRoot, '.git', 'index');
         const gitDir = path.join(this.repoRoot, '.git');
         try {
             this._gitIndexWatcher = fs.watch(gitDir, (_, filename) => {

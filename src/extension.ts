@@ -6,7 +6,6 @@ import { installHook } from './hookInstaller';
 import { AttributionLog } from './attributionLog';
 import { ConflictTracker } from './conflictTracker';
 import { SessionManager } from './sessionManager';
-import { SessionSourceControl } from './sessionSourceControl';
 
 let sessionManager: SessionManager | undefined;
 let gitHeadProvider: GitHeadContentProvider | undefined;
@@ -50,11 +49,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.discardFile', (resourceState: vscode.SourceControlResourceState) => {
             sessionManager?.discardFile(resourceState.resourceUri);
         }),
-        vscode.commands.registerCommand('multiClaude.discardAll', (resourceGroup: vscode.SourceControlResourceGroup) => {
-            // The SCM title menu passes the SourceControl, not the ResourceGroup
-            // We need to find the SourceControl from the resource group or accept SourceControl directly
-            const scm = resourceGroup as unknown as vscode.SourceControl;
-            sessionManager?.discardAll(scm);
+        vscode.commands.registerCommand('multiClaude.discardAll', (sourceControl: vscode.SourceControl) => {
+            sessionManager?.discardAll(sourceControl);
         }),
         vscode.commands.registerCommand('multiClaude.setupHook', async () => {
             try {
@@ -67,8 +63,8 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.refresh', () => {
             sessionManager?.refresh();
         }),
-        vscode.commands.registerCommand('multiClaude.commitSession', (panel: SessionSourceControl) => {
-            sessionManager?.commitSession(panel);
+        vscode.commands.registerCommand('multiClaude.commitSession', (panel: unknown) => {
+            sessionManager?.commitSession(panel as any);
         }),
         vscode.commands.registerCommand('multiClaude.commit', (sourceControl: vscode.SourceControl) => {
             sessionManager?.commitFromScm(sourceControl);

@@ -195,15 +195,6 @@ export class AttributionLog implements vscode.Disposable {
         }
     }
 
-    /** Returns the set of session IDs that have active (non-empty) file sets. */
-    get activeSessionIds(): Set<string> {
-        const ids = new Set<string>();
-        for (const [id, files] of this._sessionFiles) {
-            if (files.size > 0) { ids.add(id); }
-        }
-        return ids;
-    }
-
     dispose(): void {
         this._disposed = true;
         this._watcher?.close();
