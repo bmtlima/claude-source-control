@@ -23,13 +23,14 @@ export class SessionSourceControl implements vscode.Disposable {
             `Claude: ${sessionName}`,
         );
 
-        // Enable commit input box
-        this.scm.inputBox.placeholder = `Message (Cmd+Enter to commit "${sessionName}" staged files)`;
+        // Enable commit input box with Commit button
+        this.scm.inputBox.placeholder = `Commit message for "${sessionName}"`;
         this.scm.acceptInputCommand = {
             command: 'multiClaude.commitSession',
             title: 'Commit',
             arguments: [this],
         };
+        this.scm.commitTemplate = '';
 
         this.stagedGroup = this.scm.createResourceGroup('staged', 'Staged Changes');
         this.stagedGroup.hideWhenEmpty = true;

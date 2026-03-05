@@ -34,6 +34,11 @@
         "icon": "$(remove)"
       },
       {
+        "command": "multiClaude.commit",
+        "title": "Commit",
+        "icon": "$(check)"
+      },
+      {
         "command": "multiClaude.discardFile",
         "title": "Revert to HEAD",
         "icon": "$(discard)"
@@ -57,17 +62,17 @@
       "scm/resourceState/context": [
         {
           "command": "multiClaude.stageFile",
-          "group": "inline",
-          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup != staged"
+          "group": "inline@1",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup != 'staged'"
         },
         {
           "command": "multiClaude.unstageFile",
-          "group": "inline",
-          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == staged"
+          "group": "inline@1",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
         },
         {
           "command": "multiClaude.discardFile",
-          "group": "inline",
+          "group": "inline@2",
           "when": "scmProvider =~ /^multiClaude\\./"
         }
       ],
@@ -75,23 +80,33 @@
         {
           "command": "multiClaude.stageAll",
           "group": "inline",
-          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == changes"
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'changes'"
+        },
+        {
+          "command": "multiClaude.stageAll",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'conflicts'"
         },
         {
           "command": "multiClaude.unstageAll",
           "group": "inline",
-          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == staged"
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
         }
       ],
       "scm/title": [
         {
+          "command": "multiClaude.commit",
+          "group": "navigation@1",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        },
+        {
           "command": "multiClaude.discardAll",
-          "group": "navigation",
+          "group": "navigation@2",
           "when": "scmProvider =~ /^multiClaude\\./"
         },
         {
           "command": "multiClaude.refresh",
-          "group": "navigation",
+          "group": "navigation@3",
           "when": "scmProvider =~ /^multiClaude\\./"
         }
       ]

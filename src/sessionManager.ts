@@ -286,7 +286,8 @@ export class SessionManager implements vscode.Disposable {
         const panel = this._findPanelForUri(resourceState.resourceUri);
         if (!panel) { return; }
         panel.stageFile(resourceState.resourceUri.fsPath);
-        this._scheduleRefresh();
+        // Refresh immediately (no debounce) so UI feels instant
+        this._refresh();
     }
 
     /** Unstage a file in its session panel. */
@@ -294,7 +295,7 @@ export class SessionManager implements vscode.Disposable {
         const panel = this._findPanelForUri(resourceState.resourceUri);
         if (!panel) { return; }
         panel.unstageFile(resourceState.resourceUri.fsPath);
-        this._scheduleRefresh();
+        this._refresh();
     }
 
     /** Stage all files in a session panel. */
@@ -302,7 +303,7 @@ export class SessionManager implements vscode.Disposable {
         const panel = this._findPanelForScm(sourceControl);
         if (!panel) { return; }
         panel.stageAll();
-        this._scheduleRefresh();
+        this._refresh();
     }
 
     /** Unstage all files in a session panel. */
@@ -310,7 +311,14 @@ export class SessionManager implements vscode.Disposable {
         const panel = this._findPanelForScm(sourceControl);
         if (!panel) { return; }
         panel.unstageAll();
-        this._scheduleRefresh();
+        this._refresh();
+    }
+
+    /** Commit from the title bar button (receives SourceControl). */
+    async commitFromScm(sourceControl: vscode.SourceControl): Promise<void> {
+        const panel = this._findPanelForScm(sourceControl);
+        if (!panel) { return; }
+        await this.commitSession(panel);
     }
 
     /** Commit only the staged files from a session. */
@@ -343,6 +351,9 @@ export class SessionManager implements vscode.Disposable {
     private _findPanelForUri(uri: vscode.Uri): SessionSourceControl | undefined {
         for (const panel of this._sessions.values()) {
             if (panel.stagedPaths.has(uri.fsPath)) { return panel; }
+            for (const r of panel.stagedGroup.resourceStates) {
+                if (r.resourceUri.fsPath === uri.fsPath) { return panel; }
+            }
             for (const r of panel.changesGroup.resourceStates) {
                 if (r.resourceUri.fsPath === uri.fsPath) { return panel; }
             }

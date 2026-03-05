@@ -70,6 +70,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.commitSession', (panel: SessionSourceControl) => {
             sessionManager?.commitSession(panel);
         }),
+        vscode.commands.registerCommand('multiClaude.commit', (sourceControl: vscode.SourceControl) => {
+            sessionManager?.commitFromScm(sourceControl);
+        }),
         vscode.commands.registerCommand('multiClaude.stageFile', (resourceState: vscode.SourceControlResourceState) => {
             sessionManager?.stageFile(resourceState);
         }),
