@@ -2,7 +2,7 @@
 
 ## What this does
 
-Shows per-agent Source Control panels in VS Code's sidebar. Each agent gets its own "box" showing which files it changed, with click-to-diff, accept/discard buttons, and conflict detection when multiple agents touch the same file.
+Shows per-agent Source Control panels in VS Code's sidebar. Each agent gets its own "box" showing which files it changed, with click-to-diff, accept/discard buttons, and conflict detection when multiple agents touch the same file. 
 
 ## Architecture
 
