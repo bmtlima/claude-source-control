@@ -1,0 +1,112 @@
+{
+  "name": "multi-claude",
+  "displayName": "Multi-Claude",
+  "description": "Per-session source control panels for multiple Claude Code agents",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": ["SCM Providers"],
+  "activationEvents": [
+    "workspaceContains:.claude"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "multiClaude.stageFile",
+        "title": "Stage Change",
+        "icon": "$(add)"
+      },
+      {
+        "command": "multiClaude.unstageFile",
+        "title": "Unstage Change",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "multiClaude.stageAll",
+        "title": "Stage All Changes",
+        "icon": "$(add)"
+      },
+      {
+        "command": "multiClaude.unstageAll",
+        "title": "Unstage All Changes",
+        "icon": "$(remove)"
+      },
+      {
+        "command": "multiClaude.discardFile",
+        "title": "Revert to HEAD",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "multiClaude.discardAll",
+        "title": "Revert All to HEAD",
+        "icon": "$(discard)"
+      },
+      {
+        "command": "multiClaude.setupHook",
+        "title": "Multi-Claude: Install Attribution Hook"
+      },
+      {
+        "command": "multiClaude.refresh",
+        "title": "Multi-Claude: Refresh Panels",
+        "icon": "$(refresh)"
+      }
+    ],
+    "menus": {
+      "scm/resourceState/context": [
+        {
+          "command": "multiClaude.stageFile",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup != staged"
+        },
+        {
+          "command": "multiClaude.unstageFile",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == staged"
+        },
+        {
+          "command": "multiClaude.discardFile",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        }
+      ],
+      "scm/resourceGroup/context": [
+        {
+          "command": "multiClaude.stageAll",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == changes"
+        },
+        {
+          "command": "multiClaude.unstageAll",
+          "group": "inline",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == staged"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "multiClaude.discardAll",
+          "group": "navigation",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        },
+        {
+          "command": "multiClaude.refresh",
+          "group": "navigation",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.3.0",
+    "@vscode/test-electron": "^2.3.0"
+  }
+}
