@@ -40,12 +40,12 @@
       },
       {
         "command": "multiClaude.discardFile",
-        "title": "Revert to HEAD",
+        "title": "Discard Changes",
         "icon": "$(discard)"
       },
       {
         "command": "multiClaude.discardAll",
-        "title": "Revert All to HEAD",
+        "title": "Discard All Changes",
         "icon": "$(discard)"
       },
       {
@@ -70,35 +70,45 @@
     "menus": {
       "scm/resourceState/context": [
         {
-          "command": "multiClaude.stageFile",
+          "command": "multiClaude.discardFile",
           "group": "inline@1",
+          "when": "scmProvider =~ /^multiClaude\\./"
+        },
+        {
+          "command": "multiClaude.stageFile",
+          "group": "inline@2",
           "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup != 'staged'"
         },
         {
           "command": "multiClaude.unstageFile",
-          "group": "inline@1",
-          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
-        },
-        {
-          "command": "multiClaude.discardFile",
           "group": "inline@2",
-          "when": "scmProvider =~ /^multiClaude\\./"
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
         }
       ],
       "scm/resourceGroup/context": [
         {
+          "command": "multiClaude.discardAll",
+          "group": "inline@1",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'changes'"
+        },
+        {
+          "command": "multiClaude.discardAll",
+          "group": "inline@1",
+          "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'conflicts'"
+        },
+        {
           "command": "multiClaude.stageAll",
-          "group": "inline",
+          "group": "inline@2",
           "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'changes'"
         },
         {
           "command": "multiClaude.stageAll",
-          "group": "inline",
+          "group": "inline@2",
           "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'conflicts'"
         },
         {
           "command": "multiClaude.unstageAll",
-          "group": "inline",
+          "group": "inline@2",
           "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
         }
       ],

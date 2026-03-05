@@ -43,6 +43,23 @@ export class SessionManager implements vscode.Disposable {
         // Watch .git/index for commit/checkout detection
         this._watchGitIndex();
 
+        // Watch workspace files for changes (catches discards from built-in Git SCM)
+        const fsWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(this.repoRoot, '**/*')
+        );
+        const claudeDir = path.join(this.repoRoot, '.claude');
+        const gitDir = path.join(this.repoRoot, '.git');
+        const onFileChange = (uri: vscode.Uri) => {
+            // Ignore .claude/ and .git/ to avoid refresh loops
+            // (_refresh writes .claude/ files, .git/index has its own watcher)
+            if (uri.fsPath.startsWith(claudeDir) || uri.fsPath.startsWith(gitDir)) { return; }
+            this._scheduleRefresh();
+        };
+        fsWatcher.onDidChange(onFileChange);
+        fsWatcher.onDidCreate(onFileChange);
+        fsWatcher.onDidDelete(onFileChange);
+        this._disposables.push(fsWatcher);
+
         // Initial refresh
         this._scheduleRefresh();
     }
@@ -248,11 +265,11 @@ export class SessionManager implements vscode.Disposable {
     /** Discard a single file — revert to HEAD (tracked) or delete (untracked). */
     async discardFile(uri: vscode.Uri): Promise<void> {
         const confirm = await vscode.window.showWarningMessage(
-            `Revert ${path.basename(uri.fsPath)} to HEAD?`,
+            `Discard changes to ${path.basename(uri.fsPath)}?`,
             { modal: true },
-            'Revert',
+            'Discard',
         );
-        if (confirm !== 'Revert') { return; }
+        if (confirm !== 'Discard') { return; }
 
         const relativePath = path.relative(this.repoRoot, uri.fsPath);
         try {
@@ -288,11 +305,11 @@ export class SessionManager implements vscode.Disposable {
         if (allResources.length === 0) { return; }
 
         const confirm = await vscode.window.showWarningMessage(
-            `Revert all ${allResources.length} file(s) from "${targetSession.sessionName}" to HEAD?`,
+            `Discard all ${allResources.length} change(s) from "${targetSession.sessionName}"?`,
             { modal: true },
-            'Revert All',
+            'Discard All',
         );
-        if (confirm !== 'Revert All') { return; }
+        if (confirm !== 'Discard All') { return; }
 
         for (const resource of allResources) {
             const relativePath = path.relative(this.repoRoot, resource.resourceUri.fsPath);
