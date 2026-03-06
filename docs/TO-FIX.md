@@ -37,3 +37,6 @@
 - But Agent-2 shows both a Changes group (for `src/components/Button.tsx`) and a Conflicts group (for `src/index.ts`)
 - Agent-1 has no non-conflicting files, so its Changes group is empty and hidden (`hideWhenEmpty = true`)
 - This is technically correct behavior but creates a confusing asymmetric UX where Agent-1 appears to have no "normal" changes at all 
+
+
+see how conflicts are handled
