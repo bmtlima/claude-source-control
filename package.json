@@ -2,7 +2,7 @@
   "name": "multi-claude",
   "displayName": "Claude Source Control",
   "description": "Per-session source control panels for multiple Claude Code agents",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "publisher": "bmtlima",
   "license": "MIT",
   "icon": "artifacts/cropped-logo.png",
