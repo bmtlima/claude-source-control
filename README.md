@@ -12,7 +12,7 @@ Running multiple Claude Code sessions at once? This extension gives each one its
 
 1. Install from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=bmtlima.multi-claude)
 2. Open any git repo in VS Code
-3. Use Claude Code normally — each session that edits files gets its own panel in the Source Control sidebar
+3. Use Claude Code normally — active sessions appear in the **Claude Sessions** tree view in the Source Control sidebar. Click a session to show its SCM panel.
 
 The extension auto-installs a lightweight hook the first time it activates. No configuration needed.
 
@@ -48,15 +48,13 @@ From the Source Control sidebar:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `multiClaude.autoShowRepositories` | `false` | Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled (default), session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them. |
+| `multiClaude.autoCreatePanels` | `false` | Automatically create SCM panels when Claude sessions are detected. When disabled (default), sessions appear in the Claude Sessions tree view — click to show individual panels. |
 
 To change a setting, open **Settings** (`Cmd+,` / `Ctrl+,`), search for "multiClaude", and toggle the option. Or add it directly to your `settings.json`:
 
 ```json
-"multiClaude.autoShowRepositories": true
+"multiClaude.autoCreatePanels": true
 ```
-
-> **Tip:** The Source Control sidebar has a three-dot menu (⋯) at the top where you can toggle **Repositories**, **Changes**, and **Graph**. The Repositories view lets you check/uncheck which session panels are visible — useful when you're running many agents and only want to focus on a few.
 
 ## Commands
 

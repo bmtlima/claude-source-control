@@ -54,6 +54,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     sessionManager = new SessionManager(repoRoot, attributionLog, conflictTracker, fileDecorationProvider);
     context.subscriptions.push(sessionManager);
 
+    // Register tree view in the Source Control sidebar
+    const treeView = vscode.window.createTreeView('multiClaude.sessions', {
+        treeDataProvider: sessionManager.sessionTreeProvider,
+    });
+    context.subscriptions.push(treeView);
+
     // Register commands
     context.subscriptions.push(
         vscode.commands.registerCommand('multiClaude.discardFile', (resourceState: vscode.SourceControlResourceState) => {
@@ -102,6 +108,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         }),
         vscode.commands.registerCommand('multiClaude.revealTerminal', (sourceControl: vscode.SourceControl) => {
             sessionManager?.revealTerminal(sourceControl);
+        }),
+        vscode.commands.registerCommand('multiClaude.showSessionPanel', (sessionId: string) => {
+            sessionManager?.showSessionPanel(sessionId);
+        }),
+        vscode.commands.registerCommand('multiClaude.showAllPanels', () => {
+            sessionManager?.showAllPanels();
+        }),
+        vscode.commands.registerCommand('multiClaude.hideSessionPanel', (sessionId: string) => {
+            sessionManager?.hideSessionPanel(sessionId);
         }),
     );
 }

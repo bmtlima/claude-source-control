@@ -75,6 +75,21 @@
         "command": "multiClaude.revealTerminal",
         "title": "Reveal Terminal",
         "icon": "$(terminal)"
+      },
+      {
+        "command": "multiClaude.showSessionPanel",
+        "title": "Show Panel",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "multiClaude.showAllPanels",
+        "title": "Show All Panels",
+        "icon": "$(checklist)"
+      },
+      {
+        "command": "multiClaude.hideSessionPanel",
+        "title": "Hide Panel",
+        "icon": "$(eye-closed)"
       }
     ],
     "menus": {
@@ -122,6 +137,30 @@
           "when": "scmProvider =~ /^multiClaude\\./ && scmResourceGroup == 'staged'"
         }
       ],
+      "view/title": [
+        {
+          "command": "multiClaude.showAllPanels",
+          "group": "navigation",
+          "when": "view == multiClaude.sessions"
+        },
+        {
+          "command": "multiClaude.refresh",
+          "group": "navigation",
+          "when": "view == multiClaude.sessions"
+        }
+      ],
+      "view/item/context": [
+        {
+          "command": "multiClaude.showSessionPanel",
+          "group": "inline",
+          "when": "view == multiClaude.sessions && viewItem == sessionWithoutPanel"
+        },
+        {
+          "command": "multiClaude.hideSessionPanel",
+          "group": "inline",
+          "when": "view == multiClaude.sessions && viewItem == sessionWithPanel"
+        }
+      ],
       "scm/title": [
         {
           "command": "multiClaude.commit",
@@ -145,14 +184,23 @@
         }
       ]
     },
+    "views": {
+      "scm": [
+        {
+          "id": "multiClaude.sessions",
+          "name": "Claude Sessions",
+          "when": "multiClaude.hasActiveSessions"
+        }
+      ]
+    },
     "viewsWelcome": [],
     "configuration": {
       "title": "Claude Source Control",
       "properties": {
-        "multiClaude.autoShowRepositories": {
+        "multiClaude.autoCreatePanels": {
           "type": "boolean",
           "default": false,
-          "description": "Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled, session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them."
+          "description": "Automatically create SCM panels when Claude sessions are detected. When disabled (default), sessions appear in the Claude Sessions tree view — click to show individual panels."
         }
       }
     }

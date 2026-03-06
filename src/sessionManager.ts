@@ -7,6 +7,7 @@ import { SessionSourceControl } from './sessionSourceControl';
 import { gitStatusFiles, gitCheckoutFile, gitAddAndCommit } from './gitUtils';
 import { NAME_POOL, SESSION_NAMES_FILE, SESSION_PIDS_FILE, DEBOUNCE_MS } from './constants';
 import { ClaudeFileDecorationProvider, FileState } from './fileDecorationProvider';
+import { SessionTreeProvider, SessionInfo } from './sessionTreeProvider';
 
 /**
  * Orchestrates sessions:
@@ -24,8 +25,11 @@ export class SessionManager implements vscode.Disposable {
     private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
     private _refreshInProgress = false;
     private _refreshQueued = false;
-    private _repositoriesViewShown = false;
+    private _activeSessionFiles = new Map<string, Set<string>>();
+    private _lastUntrackedPaths = new Set<string>();
+    private _lastDeletedPaths = new Set<string>();
     private _statusBar: vscode.StatusBarItem;
+    private _sessionTreeProvider = new SessionTreeProvider();
     private _gitIndexWatcher: fs.FSWatcher | null = null;
     private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
     constructor(
@@ -75,6 +79,10 @@ export class SessionManager implements vscode.Disposable {
 
         // Initial refresh
         this._scheduleRefresh();
+    }
+
+    get sessionTreeProvider(): SessionTreeProvider {
+        return this._sessionTreeProvider;
     }
 
     private _loadSessionNames(): void {
@@ -206,8 +214,17 @@ export class SessionManager implements vscode.Disposable {
                 }
             }
 
-            // Create/update SCM panels
+            // Cache active session data for on-demand panel creation
+            this._activeSessionFiles = activeSessionFiles;
+            this._lastUntrackedPaths = untrackedPaths;
+            this._lastDeletedPaths = deletedPaths;
+
             const activeSessions = new Set(activeSessionFiles.keys());
+
+            // Assign names for all active sessions (needed for tree view even without panels)
+            for (const sessionId of activeSessions) {
+                this._assignName(sessionId);
+            }
 
             // Remove panels for sessions with no active files
             for (const [sessionId, panel] of this._sessions) {
@@ -219,14 +236,14 @@ export class SessionManager implements vscode.Disposable {
                 }
             }
 
+            const autoCreate = vscode.workspace.getConfiguration('multiClaude').get<boolean>('autoCreatePanels', false);
+
             // Create or update panels for active sessions
             for (const [sessionId, files] of activeSessionFiles) {
                 let panel = this._sessions.get(sessionId);
                 if (!panel) {
-                    const name = this._assignName(sessionId);
-                    panel = new SessionSourceControl(sessionId, name, this.repoRoot);
-                    this._sessions.set(sessionId, panel);
-                    this._showRepositoriesView();
+                    if (!autoCreate) { continue; }
+                    panel = this._createPanel(sessionId);
                 }
 
                 // Split into conflicts vs changes
@@ -275,7 +292,8 @@ export class SessionManager implements vscode.Disposable {
             // Match terminals to sessions
             await this._matchTerminals();
 
-            // Update status bar
+            // Update tree view and status bar
+            this._updateTree();
             this._updateStatusBar(activeSessions);
         } catch (err) {
             console.error('Multi-Claude refresh failed:', err);
@@ -375,15 +393,70 @@ export class SessionManager implements vscode.Disposable {
         }
     }
 
-    /** Show the Source Control Repositories view if the setting is enabled. */
-    private _showRepositoriesView(): void {
-        if (this._repositoriesViewShown) { return; }
-        this._repositoriesViewShown = true;
+    /** Create an SCM panel for a session. */
+    private _createPanel(sessionId: string): SessionSourceControl {
+        const name = this._assignName(sessionId);
+        const panel = new SessionSourceControl(sessionId, name, this.repoRoot);
+        this._sessions.set(sessionId, panel);
+        return panel;
+    }
 
-        const autoShow = vscode.workspace.getConfiguration('multiClaude').get<boolean>('autoShowRepositories', true);
-        if (autoShow) {
-            vscode.commands.executeCommand('vscode.setViewVisibility', 'workbench.scm.repositories', true);
+    /** Create and populate a panel for a single session (called from tree view). */
+    showSessionPanel(sessionId: string): void {
+        if (this._sessions.has(sessionId)) { return; }
+        const files = this._activeSessionFiles.get(sessionId);
+        if (!files) { return; }
+
+        const panel = this._createPanel(sessionId);
+        const conflicts = this.conflictTracker.getConflictsFor(sessionId);
+        const conflictFiles: string[] = [];
+        const changedFiles: string[] = [];
+        for (const f of files) {
+            if (conflicts.has(f)) {
+                conflictFiles.push(f);
+            } else {
+                changedFiles.push(f);
+            }
         }
+        panel.updateResources(changedFiles, conflictFiles, this._lastUntrackedPaths, this._lastDeletedPaths);
+        this._updateTree();
+    }
+
+    /** Hide (dispose) a session's SCM panel without removing the session from tracking. */
+    hideSessionPanel(sessionId: string): void {
+        const panel = this._sessions.get(sessionId);
+        if (!panel) { return; }
+        panel.dispose();
+        this._sessions.delete(sessionId);
+        this._sessionTerminals.delete(sessionId);
+        this._updateTree();
+    }
+
+    /** Create panels for all tracked sessions. */
+    showAllPanels(): void {
+        for (const sessionId of this._activeSessionFiles.keys()) {
+            if (!this._sessions.has(sessionId)) {
+                this.showSessionPanel(sessionId);
+            }
+        }
+    }
+
+    /** Update the tree view with current session state. */
+    private _updateTree(): void {
+        const infos: SessionInfo[] = [];
+        for (const [sessionId, files] of this._activeSessionFiles) {
+            const name = this._nameMap.get(sessionId) ?? sessionId.slice(0, 6);
+            const conflicts = this.conflictTracker.getConflictsFor(sessionId);
+            infos.push({
+                sessionId,
+                name,
+                fileCount: files.size,
+                conflictCount: conflicts.size,
+                hasPanel: this._sessions.has(sessionId),
+            });
+        }
+        this._sessionTreeProvider.update(infos);
+        vscode.commands.executeCommand('setContext', 'multiClaude.hasActiveSessions', infos.length > 0);
     }
 
     private _updateStatusBar(activeSessions: Set<string>): void {
@@ -414,12 +487,8 @@ export class SessionManager implements vscode.Disposable {
         const lines: string[] = ['Multi-Claude Sessions:'];
         for (const sid of activeSessions) {
             const name = this._nameMap.get(sid) ?? sid.slice(0, 6);
-            const panel = this._sessions.get(sid);
-            const fileCount = panel
-                ? panel.changesGroup.resourceStates.length
-                    + panel.stagedGroup.resourceStates.length
-                    + panel.conflictsGroup.resourceStates.length
-                : 0;
+            const files = this._activeSessionFiles.get(sid);
+            const fileCount = files?.size ?? 0;
             lines.push(`  ${name}: ${fileCount} file${fileCount !== 1 ? 's' : ''}`);
         }
         if (conflicts > 0) {
@@ -538,9 +607,12 @@ export class SessionManager implements vscode.Disposable {
                 panel.dispose();
                 this._sessions.delete(sessionId);
                 this._sessionTerminals.delete(sessionId);
+                this._activeSessionFiles.delete(sessionId);
                 this.conflictTracker.removeSession(sessionId);
                 this.attributionLog.removeSession(sessionId);
-                this._pruneSessionNames(new Set(this._sessions.keys()));
+                const allKnown = new Set([...this._sessions.keys(), ...this._activeSessionFiles.keys()]);
+                this._pruneSessionNames(allKnown);
+                this._updateTree();
                 break;
             }
         }
