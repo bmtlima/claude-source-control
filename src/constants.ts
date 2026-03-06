@@ -9,10 +9,10 @@ export const HOOK_SCRIPT_PATH = '.claude/hooks/log-attribution.sh';
 export const SETTINGS_LOCAL_PATH = '.claude/settings.local.json';
 
 export const NAME_POOL = [
-    'Rainbow', 'Falcon', 'Aurora', 'Comet', 'Phoenix',
-    'Nebula', 'Horizon', 'Cascade', 'Prism', 'Zenith',
-    'Ember', 'Quasar', 'Riptide', 'Solstice', 'Tempest',
-    'Vortex', 'Zephyr', 'Orbit', 'Spectra', 'Glacier',
+    'Eclipse', 'Quasar', 'Nebula', 'Pulsar', 'Orion',
+    'Vega', 'Zenith', 'Sirius', 'Cosmos', 'Nova',
+    'Solaris', 'Zenith', 'Lyra', 'Comet', 'Aurora',
+    'Polaris', 'Titan', 'Cassini', 'Kepler', 'Astra',
 ];
 
 export const DEBOUNCE_MS = 300;

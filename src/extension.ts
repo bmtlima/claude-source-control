@@ -6,9 +6,11 @@ import { installHook } from './hookInstaller';
 import { AttributionLog } from './attributionLog';
 import { ConflictTracker } from './conflictTracker';
 import { SessionManager } from './sessionManager';
+import { ClaudeFileDecorationProvider } from './fileDecorationProvider';
 
 let sessionManager: SessionManager | undefined;
 let gitHeadProvider: GitHeadContentProvider | undefined;
+let fileDecorationProvider: ClaudeFileDecorationProvider | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -40,8 +42,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     const conflictTracker = new ConflictTracker();
     context.subscriptions.push(conflictTracker);
 
+    // Create file decoration provider
+    fileDecorationProvider = new ClaudeFileDecorationProvider();
+    context.subscriptions.push(
+        vscode.window.registerFileDecorationProvider(fileDecorationProvider),
+        fileDecorationProvider
+    );
+
     // Create session manager
-    sessionManager = new SessionManager(repoRoot, attributionLog, conflictTracker);
+    sessionManager = new SessionManager(repoRoot, attributionLog, conflictTracker, fileDecorationProvider);
     context.subscriptions.push(sessionManager);
 
     // Register commands

@@ -6,6 +6,7 @@ import { ConflictTracker } from './conflictTracker';
 import { SessionSourceControl } from './sessionSourceControl';
 import { gitStatusFiles, gitCheckoutFile, gitAddAndCommit } from './gitUtils';
 import { NAME_POOL, SESSION_NAMES_FILE, SESSION_PIDS_FILE, DEBOUNCE_MS } from './constants';
+import { ClaudeFileDecorationProvider, FileState } from './fileDecorationProvider';
 
 /**
  * Orchestrates sessions:
@@ -24,15 +25,20 @@ export class SessionManager implements vscode.Disposable {
     private _statusBar: vscode.StatusBarItem;
     private _gitIndexWatcher: fs.FSWatcher | null = null;
     private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
+    private _overviewScm: vscode.SourceControl | null = null;
 
     constructor(
         private readonly repoRoot: string,
         private readonly attributionLog: AttributionLog,
         private readonly conflictTracker: ConflictTracker,
+        private readonly fileDecorationProvider: ClaudeFileDecorationProvider,
     ) {
         this._statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this._statusBar.command = 'multiClaude.refresh';
         this._disposables.push(this._statusBar);
+
+        // Welcome overview panel (shown when no sessions are active)
+        this._createOverviewPanel();
 
         // Load persisted session names
         this._loadSessionNames();
@@ -71,6 +77,11 @@ export class SessionManager implements vscode.Disposable {
 
         // Initial refresh
         this._scheduleRefresh();
+    }
+
+    private _createOverviewPanel(): void {
+        this._overviewScm = vscode.scm.createSourceControl('multiClaude.overview', 'Multi-Claude');
+        this._overviewScm.inputBox.visible = false;
     }
 
     private _loadSessionNames(): void {
@@ -233,6 +244,39 @@ export class SessionManager implements vscode.Disposable {
                 panel.updateResources(changedFiles, conflictFiles, untrackedPaths, deletedPaths);
             }
 
+            // Build file decoration states
+            const fileStates = new Map<string, { state: FileState; sessionNames: string[] }>();
+            const allConflicts = this.conflictTracker.allConflicts;
+            for (const [sessionId, files] of activeSessionFiles) {
+                const name = this._nameMap.get(sessionId) ?? sessionId;
+                for (const f of files) {
+                    const existing = fileStates.get(f);
+                    const sessionNames = existing ? existing.sessionNames : [];
+                    if (!sessionNames.includes(name)) { sessionNames.push(name); }
+
+                    let state: FileState;
+                    if (allConflicts.has(f)) {
+                        state = 'conflict';
+                    } else if (deletedPaths.has(f)) {
+                        state = 'deleted';
+                    } else if (untrackedPaths.has(f)) {
+                        state = 'added';
+                    } else {
+                        state = 'modified';
+                    }
+                    fileStates.set(f, { state, sessionNames });
+                }
+            }
+            this.fileDecorationProvider.updateFileStates(fileStates);
+
+            // Show/hide welcome overview panel via dispose/recreate
+            if (activeSessions.size > 0 && this._overviewScm) {
+                this._overviewScm.dispose();
+                this._overviewScm = null;
+            } else if (activeSessions.size === 0 && !this._overviewScm) {
+                this._createOverviewPanel();
+            }
+
             // Prune stale attribution entries and session names
             this.attributionLog.pruneEntries(uncommittedPaths);
             this._pruneSessionNames(activeSessions);
@@ -241,7 +285,7 @@ export class SessionManager implements vscode.Disposable {
             await this._matchTerminals();
 
             // Update status bar
-            this._updateStatusBar(activeSessions.size);
+            this._updateStatusBar(activeSessions);
         } catch (err) {
             console.error('Multi-Claude refresh failed:', err);
         }
@@ -334,17 +378,46 @@ export class SessionManager implements vscode.Disposable {
         }
     }
 
-    private _updateStatusBar(sessionCount: number): void {
-        if (sessionCount === 0) {
+    private _updateStatusBar(activeSessions: Set<string>): void {
+        if (activeSessions.size === 0) {
             this._statusBar.hide();
             return;
         }
+
+        // Show session names (max 3, then +N)
+        const names: string[] = [];
+        for (const sid of activeSessions) {
+            names.push(this._nameMap.get(sid) ?? sid.slice(0, 6));
+        }
+        const maxShown = 3;
+        let nameText = names.slice(0, maxShown).join(', ');
+        if (names.length > maxShown) {
+            nameText += ` +${names.length - maxShown}`;
+        }
+
         const conflicts = this.conflictTracker.conflictCount;
-        let text = `$(git-branch) ${sessionCount} session${sessionCount !== 1 ? 's' : ''}`;
+        let text = `$(hubot) ${nameText}`;
         if (conflicts > 0) {
-            text += ` $(warning) ${conflicts} conflict${conflicts !== 1 ? 's' : ''}`;
+            text += ` $(warning) ${conflicts}`;
         }
         this._statusBar.text = text;
+
+        // Rich tooltip
+        const lines: string[] = ['Multi-Claude Sessions:'];
+        for (const sid of activeSessions) {
+            const name = this._nameMap.get(sid) ?? sid.slice(0, 6);
+            const panel = this._sessions.get(sid);
+            const fileCount = panel
+                ? panel.changesGroup.resourceStates.length
+                    + panel.stagedGroup.resourceStates.length
+                    + panel.conflictsGroup.resourceStates.length
+                : 0;
+            lines.push(`  ${name}: ${fileCount} file${fileCount !== 1 ? 's' : ''}`);
+        }
+        if (conflicts > 0) {
+            lines.push(`  ${conflicts} conflict${conflicts !== 1 ? 's' : ''}`);
+        }
+        this._statusBar.tooltip = lines.join('\n');
         this._statusBar.show();
     }
 
@@ -548,6 +621,8 @@ export class SessionManager implements vscode.Disposable {
             clearInterval(this._terminalNameTimer);
         }
         this._gitIndexWatcher?.close();
+        this._overviewScm?.dispose();
+        this._overviewScm = null;
         for (const panel of this._sessions.values()) {
             panel.cleanupPersistence();
             panel.dispose();

@@ -57,6 +57,15 @@ export class ConflictTracker implements vscode.Disposable {
         return result;
     }
 
+    /** Set of all file paths that are conflicted (touched by 2+ sessions). */
+    get allConflicts(): Set<string> {
+        const result = new Set<string>();
+        for (const [filePath, sessions] of this._fileToSessions) {
+            if (sessions.size > 1) { result.add(filePath); }
+        }
+        return result;
+    }
+
     /** Total number of conflicted files across all sessions. */
     get conflictCount(): number {
         let count = 0;

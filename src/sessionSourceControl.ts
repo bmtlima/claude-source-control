@@ -23,7 +23,7 @@ export class SessionSourceControl implements vscode.Disposable {
     ) {
         this.scm = vscode.scm.createSourceControl(
             `multiClaude.${sessionId}`,
-            `Claude: ${sessionName}`,
+            `${sessionName}`,
         );
 
         // Load persisted staged paths
@@ -37,6 +37,15 @@ export class SessionSourceControl implements vscode.Disposable {
             arguments: [this],
         };
         this.scm.commitTemplate = '';
+
+        // QuickDiffProvider for gutter decorations
+        this.scm.quickDiffProvider = {
+            provideOriginalResource: (uri: vscode.Uri) => {
+                const relative = path.relative(this.repoRoot, uri.fsPath);
+                if (!relative || relative.startsWith('..')) { return undefined; }
+                return GitHeadContentProvider.makeUri(this.repoRoot, relative);
+            },
+        };
 
         this.stagedGroup = this.scm.createResourceGroup('staged', 'Staged Changes');
         this.stagedGroup.hideWhenEmpty = true;
@@ -163,14 +172,17 @@ export class SessionSourceControl implements vscode.Disposable {
         const relative = absPath.slice(this.repoRoot.length + 1);
         const headUri = GitHeadContentProvider.makeUri(this.repoRoot, relative);
 
-        let tooltip = relative;
+        let tooltip: string;
         let iconPath: vscode.ThemeIcon | undefined;
         if (isConflict) {
-            tooltip = `${relative} (modified by multiple sessions)`;
+            tooltip = `${relative} (conflict — multiple sessions)`;
             iconPath = new vscode.ThemeIcon('warning', new vscode.ThemeColor('list.warningForeground'));
         } else if (isDeleted) {
             tooltip = `${relative} (deleted)`;
-            iconPath = new vscode.ThemeIcon('trash', new vscode.ThemeColor('list.errorForeground'));
+        } else if (isUntracked) {
+            tooltip = `${relative} (new file)`;
+        } else {
+            tooltip = `${relative} (modified)`;
         }
 
         const state: vscode.SourceControlResourceState = {
