@@ -5,3 +5,7 @@ src/**
 tsconfig.json
 **/*.map
 node_modules/**
+.env
+docs/**
+CLAUDE.md
+artifacts/logo.jpg
