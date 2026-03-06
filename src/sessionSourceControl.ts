@@ -99,11 +99,8 @@ export class SessionSourceControl implements vscode.Disposable {
         const changeStates: vscode.SourceControlResourceState[] = [];
         const conflictStates: vscode.SourceControlResourceState[] = [];
 
-        // Build conflict set for reference
-        const conflictSet = new Set(conflictFiles);
-
         for (const f of changedFiles) {
-            const state = this._makeResourceState(f, untrackedPaths.has(f), false);
+            const state = this._makeResourceState(f, false);
             if (this._stagedPaths.has(f)) {
                 stagedStates.push(state);
             } else {
@@ -112,7 +109,7 @@ export class SessionSourceControl implements vscode.Disposable {
         }
 
         for (const f of conflictFiles) {
-            const state = this._makeResourceState(f, untrackedPaths.has(f), true);
+            const state = this._makeResourceState(f, true);
             if (this._stagedPaths.has(f)) {
                 stagedStates.push(state);
             } else {
@@ -128,7 +125,6 @@ export class SessionSourceControl implements vscode.Disposable {
 
     private _makeResourceState(
         absPath: string,
-        isUntracked: boolean,
         isConflict: boolean,
     ): vscode.SourceControlResourceState {
         const uri = vscode.Uri.file(absPath);
