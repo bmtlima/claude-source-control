@@ -40,3 +40,8 @@
 
 
 see how conflicts are handled
+
+add those main files to gitignore
+
+so for this extension it always generates three files under .claude, right? Shouldnt they always be git           
+  ignored? I had my friend try it out and she had to add them manually     

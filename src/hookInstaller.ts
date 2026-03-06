@@ -69,3 +69,32 @@ export function isHookInstalled(workspaceRoot: string): boolean {
     const scriptPath = path.join(workspaceRoot, HOOK_SCRIPT_PATH);
     return fs.existsSync(scriptPath);
 }
+
+/**
+ * Ensures the extension's runtime files under .claude/ are listed in .gitignore.
+ * Appends missing entries; does not duplicate existing ones.
+ */
+export function ensureGitignore(workspaceRoot: string): void {
+    const gitignorePath = path.join(workspaceRoot, '.gitignore');
+
+    const entriesToIgnore = [
+        '.claude/file-attribution.jsonl',
+        '.claude/session-names.json',
+        '.claude/staged-files.json',
+        '.claude/session-pids.json',
+        '.claude/hooks/',
+    ];
+
+    let existing = '';
+    if (fs.existsSync(gitignorePath)) {
+        existing = fs.readFileSync(gitignorePath, 'utf-8');
+    }
+
+    const lines = existing.split('\n').map(l => l.trim());
+    const missing = entriesToIgnore.filter(entry => !lines.includes(entry));
+
+    if (missing.length === 0) { return; }
+
+    const block = '\n# Claude Source Control (auto-generated)\n' + missing.join('\n') + '\n';
+    fs.appendFileSync(gitignorePath, block);
+}

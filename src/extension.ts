@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { URI_SCHEME } from './constants';
 import { isGitRepo, gitRepoRoot } from './gitUtils';
 import { GitHeadContentProvider } from './gitHeadContentProvider';
-import { installHook } from './hookInstaller';
+import { installHook, ensureGitignore } from './hookInstaller';
 import { AttributionLog } from './attributionLog';
 import { ConflictTracker } from './conflictTracker';
 import { SessionManager } from './sessionManager';
@@ -27,9 +27,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.workspace.registerTextDocumentContentProvider(URI_SCHEME, gitHeadProvider)
     );
 
-    // Install hook (idempotent)
+    // Install hook (idempotent) and ensure runtime files are gitignored
     try {
         await installHook(repoRoot);
+        ensureGitignore(repoRoot);
     } catch (err) {
         console.warn('Multi-Claude: Failed to install hook:', err);
     }
