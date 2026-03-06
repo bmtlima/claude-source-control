@@ -64,4 +64,4 @@ Once installed, just use Claude Code normally. From the Source Control sidebar y
 
 ## License
 
-[MIT](LICENSE)
+MIT
