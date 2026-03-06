@@ -26,6 +26,7 @@ export class SessionManager implements vscode.Disposable {
     private _refreshInProgress = false;
     private _refreshQueued = false;
     private _activeSessionFiles = new Map<string, Set<string>>();
+    private _hasPrunedDeadSessions = false;
     private _lastUntrackedPaths = new Set<string>();
     private _lastDeletedPaths = new Set<string>();
     private _statusBar: vscode.StatusBarItem;
@@ -134,6 +135,31 @@ export class SessionManager implements vscode.Disposable {
         return name;
     }
 
+    /**
+     * On first refresh, remove attribution for sessions whose processes are no longer running.
+     * Uses PID chains from session-pids.json and process.kill(pid, 0) to check liveness.
+     */
+    private _pruneDeadSessions(): void {
+        if (this._hasPrunedDeadSessions) { return; }
+        this._hasPrunedDeadSessions = true;
+
+        const pidsPath = path.join(this.repoRoot, SESSION_PIDS_FILE);
+        let pidChains: Record<string, number[]>;
+        try {
+            pidChains = JSON.parse(fs.readFileSync(pidsPath, 'utf-8'));
+        } catch { return; }
+
+        for (const [sessionId, pids] of Object.entries(pidChains)) {
+            if (!Array.isArray(pids) || pids.length === 0) { continue; }
+            const alive = pids.some(pid => {
+                try { process.kill(pid, 0); return true; } catch { return false; }
+            });
+            if (!alive) {
+                this.attributionLog.removeSession(sessionId);
+            }
+        }
+    }
+
     private _watchGitIndex(): void {
         const gitDir = path.join(this.repoRoot, '.git');
         try {
@@ -161,6 +187,9 @@ export class SessionManager implements vscode.Disposable {
         }
         this._refreshInProgress = true;
         try {
+            // Remove attribution for sessions whose processes are no longer running
+            this._pruneDeadSessions();
+
             // Get current git status
             const statusEntries = await gitStatusFiles(this.repoRoot);
             const uncommittedPaths = new Set(
@@ -208,7 +237,7 @@ export class SessionManager implements vscode.Disposable {
                 this.conflictTracker.update(sessionId, files);
             }
             // Clean up sessions that have no active files
-            for (const sessionId of [...this._sessions.keys()]) {
+            for (const sessionId of this.conflictTracker.trackedSessionIds) {
                 if (!activeSessionFiles.has(sessionId)) {
                     this.conflictTracker.update(sessionId, new Set());
                 }

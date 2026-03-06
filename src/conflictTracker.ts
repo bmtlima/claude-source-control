@@ -66,6 +66,15 @@ export class ConflictTracker implements vscode.Disposable {
         return result;
     }
 
+    /** All session IDs currently tracked. */
+    get trackedSessionIds(): Set<string> {
+        const ids = new Set<string>();
+        for (const sessions of this._fileToSessions.values()) {
+            for (const s of sessions) { ids.add(s); }
+        }
+        return ids;
+    }
+
     /** Total number of conflicted files across all sessions. */
     get conflictCount(): number {
         let count = 0;
