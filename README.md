@@ -48,12 +48,12 @@ From the Source Control sidebar:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `multiClaude.autoShowRepositories` | `true` | Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled, session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them. |
+| `multiClaude.autoShowRepositories` | `false` | Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled (default), session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them. |
 
 To change a setting, open **Settings** (`Cmd+,` / `Ctrl+,`), search for "multiClaude", and toggle the option. Or add it directly to your `settings.json`:
 
 ```json
-"multiClaude.autoShowRepositories": false
+"multiClaude.autoShowRepositories": true
 ```
 
 > **Tip:** The Source Control sidebar has a three-dot menu (⋯) at the top where you can toggle **Repositories**, **Changes**, and **Graph**. The Repositories view lets you check/uncheck which session panels are visible — useful when you're running many agents and only want to focus on a few.
