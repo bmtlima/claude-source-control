@@ -82,7 +82,7 @@ export function ensureGitignore(workspaceRoot: string): void {
         '.claude/session-names.json',
         '.claude/staged-files.json',
         '.claude/session-pids.json',
-        '.claude/hooks/',
+        '.claude/hooks/log-attribution.sh',
     ];
 
     let existing = '';

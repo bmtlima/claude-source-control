@@ -159,7 +159,7 @@ export class SessionSourceControl implements vscode.Disposable {
         this.stagedGroup.resourceStates = stagedStates;
         this.changesGroup.resourceStates = changeStates;
         this.conflictsGroup.resourceStates = conflictStates;
-        this.scm.count = changedFiles.length + conflictFiles.length;
+        this.scm.count = 0;
     }
 
     private _makeResourceState(
