@@ -485,6 +485,42 @@ export class SessionManager implements vscode.Disposable {
         this._scheduleRefresh();
     }
 
+    /** Discard all files in a specific resource group (Changes or Conflicts). */
+    async discardAllFromGroup(group: vscode.SourceControlResourceGroup): Promise<void> {
+        let targetSession: SessionSourceControl | undefined;
+        for (const panel of this._sessions.values()) {
+            if (panel.changesGroup === group || panel.conflictsGroup === group) {
+                targetSession = panel;
+                break;
+            }
+        }
+        if (!targetSession) { return; }
+
+        const resources = [...group.resourceStates];
+        if (resources.length === 0) { return; }
+
+        const confirm = await vscode.window.showWarningMessage(
+            `Discard ${resources.length} change(s) from "${targetSession.sessionName}"?`,
+            { modal: true },
+            'Discard All',
+        );
+        if (confirm !== 'Discard All') { return; }
+
+        for (const resource of resources) {
+            const relativePath = path.relative(this.repoRoot, resource.resourceUri.fsPath);
+            try {
+                await gitCheckoutFile(this.repoRoot, relativePath);
+            } catch {
+                try {
+                    fs.unlinkSync(resource.resourceUri.fsPath);
+                } catch {
+                    // Skip failures on individual files
+                }
+            }
+        }
+        this._scheduleRefresh();
+    }
+
     /** Dismiss a session panel manually. */
     dismissSession(sourceControl: vscode.SourceControl): void {
         for (const [sessionId, panel] of this._sessions) {

@@ -58,8 +58,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.discardFile', (resourceState: vscode.SourceControlResourceState) => {
             sessionManager?.discardFile(resourceState.resourceUri);
         }),
-        vscode.commands.registerCommand('multiClaude.discardAll', (sourceControl: vscode.SourceControl) => {
-            sessionManager?.discardAll(sourceControl);
+        vscode.commands.registerCommand('multiClaude.discardAll', (arg: vscode.SourceControl | vscode.SourceControlResourceGroup) => {
+            if ('resourceStates' in arg) {
+                // Called from scm/resourceGroup/context — arg is a SourceControlResourceGroup
+                sessionManager?.discardAllFromGroup(arg);
+            } else {
+                // Called from scm/title — arg is a SourceControl
+                sessionManager?.discardAll(arg);
+            }
         }),
         vscode.commands.registerCommand('multiClaude.setupHook', async () => {
             try {
