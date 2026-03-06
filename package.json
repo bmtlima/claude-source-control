@@ -13,7 +13,7 @@
     "SCM Providers"
   ],
   "activationEvents": [
-    "workspaceContains:.claude"
+    "workspaceContains:.git"
   ],
   "main": "./out/extension.js",
   "contributes": {
