@@ -145,7 +145,17 @@
         }
       ]
     },
-    "viewsWelcome": []
+    "viewsWelcome": [],
+    "configuration": {
+      "title": "Claude Source Control",
+      "properties": {
+        "multiClaude.autoShowRepositories": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled, session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

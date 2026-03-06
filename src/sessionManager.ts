@@ -24,6 +24,7 @@ export class SessionManager implements vscode.Disposable {
     private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
     private _refreshInProgress = false;
     private _refreshQueued = false;
+    private _repositoriesViewShown = false;
     private _statusBar: vscode.StatusBarItem;
     private _gitIndexWatcher: fs.FSWatcher | null = null;
     private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
@@ -225,6 +226,7 @@ export class SessionManager implements vscode.Disposable {
                     const name = this._assignName(sessionId);
                     panel = new SessionSourceControl(sessionId, name, this.repoRoot);
                     this._sessions.set(sessionId, panel);
+                    this._showRepositoriesView();
                 }
 
                 // Split into conflicts vs changes
@@ -370,6 +372,17 @@ export class SessionManager implements vscode.Disposable {
             }
         } catch {
             // File may not exist yet
+        }
+    }
+
+    /** Show the Source Control Repositories view if the setting is enabled. */
+    private _showRepositoriesView(): void {
+        if (this._repositoriesViewShown) { return; }
+        this._repositoriesViewShown = true;
+
+        const autoShow = vscode.workspace.getConfiguration('multiClaude').get<boolean>('autoShowRepositories', true);
+        if (autoShow) {
+            vscode.commands.executeCommand('vscode.setViewVisibility', 'workbench.scm.repositories', true);
         }
     }
 

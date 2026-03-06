@@ -44,6 +44,20 @@ From the Source Control sidebar:
 4. Files touched by 2+ sessions are flagged as conflicts.
 5. When you commit or discard, stale entries are automatically cleaned up.
 
+## Settings
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `multiClaude.autoShowRepositories` | `true` | Automatically show the Source Control Repositories view when Claude sessions are detected. When disabled, session panels are still created but you must manually enable the Repositories view from the Source Control menu (⋯) to see and toggle them. |
+
+To change a setting, open **Settings** (`Cmd+,` / `Ctrl+,`), search for "multiClaude", and toggle the option. Or add it directly to your `settings.json`:
+
+```json
+"multiClaude.autoShowRepositories": false
+```
+
+> **Tip:** The Source Control sidebar has a three-dot menu (⋯) at the top where you can toggle **Repositories**, **Changes**, and **Graph**. The Repositories view lets you check/uncheck which session panels are visible — useful when you're running many agents and only want to focus on a few.
+
 ## Commands
 
 | Command | Description |
@@ -63,6 +77,11 @@ Stage, unstage, commit, discard, and dismiss are available via inline buttons on
 
 - Single-workspace only (uses the first workspace folder)
 - No push/pull/sync — use the built-in Git panel for remote operations
+
+## Links
+
+- [GitHub Repository](https://github.com/bmtlima/claude-source-control)
+- [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=bmtlima.multi-claude)
 
 ## License
 
