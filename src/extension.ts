@@ -84,6 +84,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.commands.registerCommand('multiClaude.dismissSession', (sourceControl: vscode.SourceControl) => {
             sessionManager?.dismissSession(sourceControl);
         }),
+        vscode.commands.registerCommand('multiClaude.revealTerminal', (sourceControl: vscode.SourceControl) => {
+            sessionManager?.revealTerminal(sourceControl);
+        }),
     );
 }
 

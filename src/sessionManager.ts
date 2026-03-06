@@ -5,7 +5,7 @@ import { AttributionLog } from './attributionLog';
 import { ConflictTracker } from './conflictTracker';
 import { SessionSourceControl } from './sessionSourceControl';
 import { gitStatusFiles, gitCheckoutFile, gitAddAndCommit } from './gitUtils';
-import { NAME_POOL, SESSION_NAMES_FILE, DEBOUNCE_MS } from './constants';
+import { NAME_POOL, SESSION_NAMES_FILE, SESSION_PIDS_FILE, DEBOUNCE_MS } from './constants';
 
 /**
  * Orchestrates sessions:
@@ -18,10 +18,12 @@ import { NAME_POOL, SESSION_NAMES_FILE, DEBOUNCE_MS } from './constants';
 export class SessionManager implements vscode.Disposable {
     private _sessions = new Map<string, SessionSourceControl>();
     private _nameMap = new Map<string, string>(); // session_id → friendly name
+    private _sessionTerminals = new Map<string, vscode.Terminal>();
     private _disposables: vscode.Disposable[] = [];
     private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
     private _statusBar: vscode.StatusBarItem;
     private _gitIndexWatcher: fs.FSWatcher | null = null;
+    private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
 
     constructor(
         private readonly repoRoot: string,
@@ -59,6 +61,13 @@ export class SessionManager implements vscode.Disposable {
         fsWatcher.onDidCreate(onFileChange);
         fsWatcher.onDidDelete(onFileChange);
         this._disposables.push(fsWatcher);
+
+        // Re-match terminal names on open/close and periodically (catches renames)
+        this._disposables.push(
+            vscode.window.onDidOpenTerminal(() => this._matchTerminals()),
+            vscode.window.onDidCloseTerminal(() => this._matchTerminals()),
+        );
+        this._terminalNameTimer = setInterval(() => this._matchTerminals(), 5000);
 
         // Initial refresh
         this._scheduleRefresh();
@@ -197,6 +206,7 @@ export class SessionManager implements vscode.Disposable {
                     panel.cleanupPersistence();
                     panel.dispose();
                     this._sessions.delete(sessionId);
+                    this._sessionTerminals.delete(sessionId);
                 }
             }
 
@@ -227,6 +237,9 @@ export class SessionManager implements vscode.Disposable {
             this.attributionLog.pruneEntries(uncommittedPaths);
             this._pruneSessionNames(activeSessions);
 
+            // Match terminals to sessions
+            await this._matchTerminals();
+
             // Update status bar
             this._updateStatusBar(activeSessions.size);
         } catch (err) {
@@ -234,7 +247,55 @@ export class SessionManager implements vscode.Disposable {
         }
     }
 
-    /** Remove session names for sessions with no active files. */
+    /** Match VS Code terminals to sessions using PID chain from hook. */
+    private async _matchTerminals(): Promise<void> {
+        const pidsPath = path.join(this.repoRoot, SESSION_PIDS_FILE);
+        let pidChains: Record<string, number[]>;
+        try {
+            pidChains = JSON.parse(fs.readFileSync(pidsPath, 'utf-8'));
+        } catch {
+            return; // No PID data yet
+        }
+
+        // Build map of terminal PID → terminal
+        const terminalPidMap = new Map<number, vscode.Terminal>();
+        for (const t of vscode.window.terminals) {
+            const pid = await t.processId;
+            if (pid) { terminalPidMap.set(pid, t); }
+        }
+
+        for (const [sessionId, chain] of Object.entries(pidChains)) {
+            if (!Array.isArray(chain)) { continue; }
+            const panel = this._sessions.get(sessionId);
+            if (!panel) { continue; }
+
+            for (const pid of chain) {
+                const terminal = terminalPidMap.get(pid);
+                if (terminal) {
+                    panel.setTerminalName(terminal.name);
+                    this._sessionTerminals.set(sessionId, terminal);
+                    break;
+                }
+            }
+        }
+    }
+
+    /** Reveal the terminal associated with an SCM panel. */
+    revealTerminal(sourceControl: vscode.SourceControl): void {
+        for (const [sessionId, panel] of this._sessions) {
+            if (panel.scm === sourceControl) {
+                const terminal = this._sessionTerminals.get(sessionId);
+                if (terminal) {
+                    terminal.show();
+                } else {
+                    vscode.window.showInformationMessage('No matching terminal found for this session.');
+                }
+                return;
+            }
+        }
+    }
+
+    /** Remove session names and PID entries for sessions with no active files. */
     private _pruneSessionNames(activeSessions: Set<string>): void {
         let changed = false;
         for (const sessionId of [...this._nameMap.keys()]) {
@@ -245,6 +306,31 @@ export class SessionManager implements vscode.Disposable {
         }
         if (changed) {
             this._saveSessionNames();
+            this._pruneSessionPids(activeSessions);
+        }
+    }
+
+    /** Remove PID entries for dead sessions. */
+    private _pruneSessionPids(activeSessions: Set<string>): void {
+        const pidsPath = path.join(this.repoRoot, SESSION_PIDS_FILE);
+        try {
+            const data: Record<string, unknown> = JSON.parse(fs.readFileSync(pidsPath, 'utf-8'));
+            let pruned = false;
+            for (const sessionId of Object.keys(data)) {
+                if (!activeSessions.has(sessionId)) {
+                    delete data[sessionId];
+                    pruned = true;
+                }
+            }
+            if (pruned) {
+                if (Object.keys(data).length === 0) {
+                    fs.unlinkSync(pidsPath);
+                } else {
+                    fs.writeFileSync(pidsPath, JSON.stringify(data));
+                }
+            }
+        } catch {
+            // File may not exist yet
         }
     }
 
@@ -333,6 +419,7 @@ export class SessionManager implements vscode.Disposable {
                 panel.cleanupPersistence();
                 panel.dispose();
                 this._sessions.delete(sessionId);
+                this._sessionTerminals.delete(sessionId);
                 this.conflictTracker.removeSession(sessionId);
                 this.attributionLog.removeSession(sessionId);
                 this._pruneSessionNames(new Set(this._sessions.keys()));
@@ -456,6 +543,9 @@ export class SessionManager implements vscode.Disposable {
     dispose(): void {
         if (this._refreshTimer) {
             clearTimeout(this._refreshTimer);
+        }
+        if (this._terminalNameTimer) {
+            clearInterval(this._terminalNameTimer);
         }
         this._gitIndexWatcher?.close();
         for (const panel of this._sessions.values()) {

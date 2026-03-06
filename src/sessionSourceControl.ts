@@ -55,6 +55,16 @@ export class SessionSourceControl implements vscode.Disposable {
         return this._stagedPaths;
     }
 
+    /** Display the terminal name below the SCM panel title (clickable to reveal). */
+    setTerminalName(name: string): void {
+        this.scm.statusBarCommands = [{
+            command: 'multiClaude.revealTerminal',
+            title: `$(terminal) ${name}`,
+            tooltip: `Reveal terminal: ${name}`,
+            arguments: [this.scm],
+        }];
+    }
+
     /** Move a file from Changes/Conflicts into Staged. */
     stageFile(absPath: string): void {
         this._stagedPaths.add(absPath);
