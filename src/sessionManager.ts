@@ -22,6 +22,8 @@ export class SessionManager implements vscode.Disposable {
     private _sessionTerminals = new Map<string, vscode.Terminal>();
     private _disposables: vscode.Disposable[] = [];
     private _refreshTimer: ReturnType<typeof setTimeout> | null = null;
+    private _refreshInProgress = false;
+    private _refreshQueued = false;
     private _statusBar: vscode.StatusBarItem;
     private _gitIndexWatcher: fs.FSWatcher | null = null;
     private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
@@ -144,6 +146,11 @@ export class SessionManager implements vscode.Disposable {
     }
 
     private async _refresh(): Promise<void> {
+        if (this._refreshInProgress) {
+            this._refreshQueued = true;
+            return;
+        }
+        this._refreshInProgress = true;
         try {
             // Get current git status
             const statusEntries = await gitStatusFiles(this.repoRoot);
@@ -270,6 +277,12 @@ export class SessionManager implements vscode.Disposable {
             this._updateStatusBar(activeSessions);
         } catch (err) {
             console.error('Multi-Claude refresh failed:', err);
+        } finally {
+            this._refreshInProgress = false;
+            if (this._refreshQueued) {
+                this._refreshQueued = false;
+                this._refresh();
+            }
         }
     }
 
@@ -440,6 +453,7 @@ export class SessionManager implements vscode.Disposable {
         if (!targetSession) { return; }
 
         const allResources = [
+            ...targetSession.stagedGroup.resourceStates,
             ...targetSession.changesGroup.resourceStates,
             ...targetSession.conflictsGroup.resourceStates,
         ];

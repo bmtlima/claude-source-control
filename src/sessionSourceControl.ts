@@ -185,6 +185,22 @@ export class SessionSourceControl implements vscode.Disposable {
             tooltip = `${relative} (modified)`;
         }
 
+        const command: vscode.Command = isDeleted
+            ? {
+                title: 'Show Deleted',
+                command: 'vscode.open',
+                arguments: [headUri],
+            }
+            : {
+                title: 'Show Changes',
+                command: 'vscode.diff',
+                arguments: [
+                    headUri,
+                    uri,
+                    `${relative} (HEAD ↔ ${this.sessionName})`,
+                ],
+            };
+
         const state: vscode.SourceControlResourceState = {
             resourceUri: uri,
             decorations: {
@@ -193,15 +209,7 @@ export class SessionSourceControl implements vscode.Disposable {
                 iconPath,
                 faded: false,
             },
-            command: {
-                title: 'Show Changes',
-                command: 'vscode.diff',
-                arguments: [
-                    headUri,
-                    uri,
-                    `${relative} (HEAD ↔ ${this.sessionName})`,
-                ],
-            },
+            command,
         };
         return state;
     }

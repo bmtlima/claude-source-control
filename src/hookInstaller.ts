@@ -32,7 +32,7 @@ export async function installHook(workspaceRoot: string): Promise<void> {
 
     // Merge hook config
     const hookEntry = {
-        matcher: 'Edit|Write',
+        matcher: 'Edit|Write|MultiEdit|NotebookEdit',
         hooks: [
             {
                 type: 'command',
@@ -48,7 +48,7 @@ export async function installHook(workspaceRoot: string): Promise<void> {
     const alreadyInstalled = postToolUse.some((entry: unknown) => {
         if (typeof entry !== 'object' || entry === null) { return false; }
         const e = entry as Record<string, unknown>;
-        if (e['matcher'] !== 'Edit|Write') { return false; }
+        if (e['matcher'] !== 'Edit|Write|MultiEdit|NotebookEdit') { return false; }
         const entryHooks = e['hooks'] as Array<Record<string, unknown>> | undefined;
         return entryHooks?.some(h => {
             const cmd = h['command'] as string | undefined;

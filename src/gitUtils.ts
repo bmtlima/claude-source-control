@@ -35,6 +35,13 @@ export interface GitStatusEntry {
     origPath?: string;
 }
 
+function stripGitQuotes(p: string): string {
+    if (p.length >= 2 && p[0] === '"' && p[p.length - 1] === '"') {
+        return p.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+    }
+    return p;
+}
+
 /** Returns list of changed files from `git status --porcelain`. */
 export async function gitStatusFiles(cwd: string): Promise<GitStatusEntry[]> {
     const out = await exec('git', ['status', '--porcelain', '-uall'], cwd);
@@ -50,8 +57,8 @@ export async function gitStatusFiles(cwd: string): Promise<GitStatusEntry[]> {
             if (arrowIdx !== -1) {
                 entries.push({
                     status: statusCode,
-                    path: rest.substring(arrowIdx + 4),
-                    origPath: rest.substring(0, arrowIdx),
+                    path: stripGitQuotes(rest.substring(arrowIdx + 4)),
+                    origPath: stripGitQuotes(rest.substring(0, arrowIdx)),
                 });
                 continue;
             }
@@ -59,7 +66,7 @@ export async function gitStatusFiles(cwd: string): Promise<GitStatusEntry[]> {
 
         entries.push({
             status: statusCode,
-            path: rest,
+            path: stripGitQuotes(rest),
         });
     }
     return entries;

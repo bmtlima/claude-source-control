@@ -153,16 +153,20 @@ export class AttributionLog implements vscode.Disposable {
      */
     pruneEntries(uncommittedAbsPaths: Set<string>): void {
         // Prune in-memory map
+        let pruned = false;
         for (const [sessionId, files] of this._sessionFiles) {
             for (const f of files) {
                 if (!uncommittedAbsPaths.has(f)) {
                     files.delete(f);
+                    pruned = true;
                 }
             }
             if (files.size === 0) {
                 this._sessionFiles.delete(sessionId);
             }
         }
+
+        if (!pruned) { return; }
 
         // Rewrite the JSONL file keeping only relevant entries
         try {
