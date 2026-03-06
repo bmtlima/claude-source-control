@@ -16,6 +16,7 @@ export interface AttributionEntry {
  */
 export class AttributionLog implements vscode.Disposable {
     private _sessionFiles = new Map<string, Set<string>>();
+    private _sessionLastTimestamp = new Map<string, number>();
     private _byteOffset = 0;
     private _logPath: string;
     private _watcher: fs.FSWatcher | null = null;
@@ -37,6 +38,11 @@ export class AttributionLog implements vscode.Disposable {
     /** All session IDs seen so far. */
     get sessionIds(): string[] {
         return Array.from(this._sessionFiles.keys());
+    }
+
+    /** Last-seen timestamp per session (from JSONL entry timestamps). */
+    get sessionLastTimestamp(): ReadonlyMap<string, number> {
+        return this._sessionLastTimestamp;
     }
 
     /** Files attributed to a specific session. */
@@ -125,6 +131,13 @@ export class AttributionLog implements vscode.Disposable {
                     ? entry.file_path
                     : path.join(this.workspaceRoot, entry.file_path);
                 files.add(absPath);
+                // Track last-seen timestamp per session
+                if (entry.timestamp) {
+                    const prev = this._sessionLastTimestamp.get(entry.session_id) ?? 0;
+                    if (entry.timestamp > prev) {
+                        this._sessionLastTimestamp.set(entry.session_id, entry.timestamp);
+                    }
+                }
                 changed = true;
             } catch {
                 // Skip malformed lines
@@ -163,6 +176,7 @@ export class AttributionLog implements vscode.Disposable {
             }
             if (files.size === 0) {
                 this._sessionFiles.delete(sessionId);
+                this._sessionLastTimestamp.delete(sessionId);
             }
         }
 
@@ -202,6 +216,7 @@ export class AttributionLog implements vscode.Disposable {
     /** Remove all data for a session (in-memory + JSONL). */
     removeSession(sessionId: string): void {
         this._sessionFiles.delete(sessionId);
+        this._sessionLastTimestamp.delete(sessionId);
 
         // Rewrite JSONL without this session's entries
         try {

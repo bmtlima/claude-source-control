@@ -136,8 +136,11 @@ export class SessionManager implements vscode.Disposable {
     }
 
     /**
-     * On first refresh, remove attribution for sessions whose processes are no longer running.
-     * Uses PID chains from session-pids.json and process.kill(pid, 0) to check liveness.
+     * On first refresh, remove attribution for dead sessions.
+     * Two strategies:
+     * 1. Sessions sharing the same PID chain (same terminal) — keep only the newest.
+     *    This handles: user stops Claude mid-command, restarts in same terminal → new session ID.
+     * 2. Sessions whose entire PID chain is dead — remove them.
      */
     private _pruneDeadSessions(): void {
         if (this._hasPrunedDeadSessions) { return; }
@@ -149,13 +152,40 @@ export class SessionManager implements vscode.Disposable {
             pidChains = JSON.parse(fs.readFileSync(pidsPath, 'utf-8'));
         } catch { return; }
 
+        const timestamps = this.attributionLog.sessionLastTimestamp;
+
+        // Group sessions by PID chain (same terminal → same chain)
+        const chainGroups = new Map<string, string[]>();
         for (const [sessionId, pids] of Object.entries(pidChains)) {
             if (!Array.isArray(pids) || pids.length === 0) { continue; }
-            const alive = pids.some(pid => {
-                try { process.kill(pid, 0); return true; } catch { return false; }
-            });
-            if (!alive) {
-                this.attributionLog.removeSession(sessionId);
+            const key = pids.join(',');
+            let group = chainGroups.get(key);
+            if (!group) {
+                group = [];
+                chainGroups.set(key, group);
+            }
+            group.push(sessionId);
+        }
+
+        // Within each terminal group, keep only the newest session
+        for (const [, sessionIds] of chainGroups) {
+            if (sessionIds.length > 1) {
+                sessionIds.sort((a, b) => (timestamps.get(b) ?? 0) - (timestamps.get(a) ?? 0));
+                for (let i = 1; i < sessionIds.length; i++) {
+                    this.attributionLog.removeSession(sessionIds[i]);
+                }
+            }
+
+            // Also remove the remaining session if all its PIDs are dead
+            const surviving = sessionIds[0];
+            const pids = pidChains[surviving];
+            if (Array.isArray(pids) && pids.length > 0) {
+                const alive = pids.some(pid => {
+                    try { process.kill(pid, 0); return true; } catch { return false; }
+                });
+                if (!alive) {
+                    this.attributionLog.removeSession(surviving);
+                }
             }
         }
     }
