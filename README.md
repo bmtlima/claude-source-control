@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="artifacts/cropped-logo.png" alt="Claude Source Control" width="128" />
-</p>
-
 <h1 align="center">Claude Source Control</h1>
 
 <p align="center">
