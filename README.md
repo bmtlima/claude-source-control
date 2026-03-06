@@ -18,6 +18,7 @@ The extension auto-installs a lightweight hook the first time it activates. No c
 
 ## What You Get
 
+- **Claude Sessions tree view** — lists all active sessions in the Source Control sidebar with file and conflict counts. Click to toggle SCM panels on/off.
 - **Per-session SCM panels** — each Claude session gets its own panel, so you always know which agent changed what
 - **Conflict detection** — files modified by 2+ sessions are flagged with a warning
 - **Stage, commit, discard** — manage changes per-session, independently of the built-in Git panel
@@ -28,7 +29,12 @@ The extension auto-installs a lightweight hook the first time it activates. No c
 
 ## Usage
 
-From the Source Control sidebar:
+From the **Claude Sessions** tree view (in the Source Control sidebar):
+
+- **Click a session** to show its SCM panel (click again to hide it)
+- **Show All Panels** button in the tree title bar to show all sessions at once
+
+From a session's SCM panel:
 
 - **Click a file** to diff it against HEAD
 - **Stage/unstage files** with the +/- buttons
