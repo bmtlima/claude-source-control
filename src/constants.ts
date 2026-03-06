@@ -11,7 +11,7 @@ export const SETTINGS_LOCAL_PATH = '.claude/settings.local.json';
 export const NAME_POOL = [
     'Eclipse', 'Quasar', 'Nebula', 'Pulsar', 'Orion',
     'Vega', 'Zenith', 'Sirius', 'Cosmos', 'Nova',
-    'Solaris', 'Zenith', 'Lyra', 'Comet', 'Aurora',
+    'Solaris', 'Latitude', 'Lyra', 'Comet', 'Aurora',
     'Polaris', 'Titan', 'Cassini', 'Kepler', 'Astra',
 ];
 

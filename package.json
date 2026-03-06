@@ -119,11 +119,6 @@
       ],
       "scm/title": [
         {
-          "command": "multiClaude.refresh",
-          "group": "navigation@1",
-          "when": "scmProvider == multiClaude.overview"
-        },
-        {
           "command": "multiClaude.commit",
           "group": "navigation@1",
           "when": "scmProvider =~ /^multiClaude\\./"
@@ -145,13 +140,7 @@
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "scm",
-        "contents": "No active Claude Code sessions.\n\nStart a Claude Code session in the terminal, or install the attribution hook.\n\n[Install Hook](command:multiClaude.setupHook)\n[Refresh](command:multiClaude.refresh)",
-        "when": "scmProvider == multiClaude.overview"
-      }
-    ]
+    "viewsWelcome": []
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

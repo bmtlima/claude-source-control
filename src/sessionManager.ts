@@ -25,8 +25,6 @@ export class SessionManager implements vscode.Disposable {
     private _statusBar: vscode.StatusBarItem;
     private _gitIndexWatcher: fs.FSWatcher | null = null;
     private _terminalNameTimer: ReturnType<typeof setInterval> | null = null;
-    private _overviewScm: vscode.SourceControl | null = null;
-
     constructor(
         private readonly repoRoot: string,
         private readonly attributionLog: AttributionLog,
@@ -36,9 +34,6 @@ export class SessionManager implements vscode.Disposable {
         this._statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
         this._statusBar.command = 'multiClaude.refresh';
         this._disposables.push(this._statusBar);
-
-        // Welcome overview panel (shown when no sessions are active)
-        this._createOverviewPanel();
 
         // Load persisted session names
         this._loadSessionNames();
@@ -77,11 +72,6 @@ export class SessionManager implements vscode.Disposable {
 
         // Initial refresh
         this._scheduleRefresh();
-    }
-
-    private _createOverviewPanel(): void {
-        this._overviewScm = vscode.scm.createSourceControl('multiClaude.overview', 'Multi-Claude');
-        this._overviewScm.inputBox.visible = false;
     }
 
     private _loadSessionNames(): void {
@@ -268,14 +258,6 @@ export class SessionManager implements vscode.Disposable {
                 }
             }
             this.fileDecorationProvider.updateFileStates(fileStates);
-
-            // Show/hide welcome overview panel via dispose/recreate
-            if (activeSessions.size > 0 && this._overviewScm) {
-                this._overviewScm.dispose();
-                this._overviewScm = null;
-            } else if (activeSessions.size === 0 && !this._overviewScm) {
-                this._createOverviewPanel();
-            }
 
             // Prune stale attribution entries and session names
             this.attributionLog.pruneEntries(uncommittedPaths);
@@ -657,8 +639,6 @@ export class SessionManager implements vscode.Disposable {
             clearInterval(this._terminalNameTimer);
         }
         this._gitIndexWatcher?.close();
-        this._overviewScm?.dispose();
-        this._overviewScm = null;
         for (const panel of this._sessions.values()) {
             panel.cleanupPersistence();
             panel.dispose();
